@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>飲みログ 🍺</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --card2: #0f3460;
+    --accent: #e94560;
+    --accent2: #f5a623;
+    --text: #eaeaea;
+    --sub: #9aaccc;
+    --green: #4caf50;
+    --border: #2a3a5c;
+    --radius: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: var(--card);
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  header .back-btn {
+    background: none; border: none; color: var(--sub);
+    font-size: 22px; cursor: pointer; padding: 4px;
+    display: none;
+  }
+  header .back-btn.show { display: block; }
+
+  /* ===== NAV ===== */
+  nav {
+    background: var(--card);
+    display: flex;
+    border-top: 1px solid var(--border);
+    position: sticky;
+    bottom: 0;
+    z-index: 100;
+  }
+  nav button {
+    flex: 1; background: none; border: none;
+    color: var(--sub); font-size: 11px;
+    padding: 10px 4px 12px;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    transition: color 0.2s;
+  }
+  nav button .icon { font-size: 22px; }
+  nav button.active { color: var(--accent); }
+
+  /* ===== MAIN ===== */
+  main { flex: 1; overflow-y: auto; padding: 16px; }
+
+  /* ===== SCREENS ===== */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* ===== CARDS ===== */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    border: 1px solid var(--border);
+  }
+  .card-title {
+    font-size: 13px;
+    color: var(--sub);
+    margin-bottom: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: block; width: 100%;
+    padding: 15px;
+    border: none; border-radius: var(--radius);
+    font-size: 16px; font-weight: 700;
+    cursor: pointer; text-align: center;
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.3px;
+  }
+  .btn:active { opacity: 0.8; transform: scale(0.98); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--card2); color: var(--text); border: 1px solid var(--border); }
+  .btn-green { background: var(--green); color: #fff; }
+  .btn-sm {
+    display: inline-block; width: auto;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  /* ===== HOME SCREEN ===== */
+  .home-hero {
+    text-align: center;
+    padding: 32px 16px 24px;
+  }
+  .home-hero .emoji { font-size: 64px; }
+  .home-hero h2 { font-size: 22px; font-weight: 700; margin: 12px 0 6px; }
+  .home-hero p { color: var(--sub); font-size: 14px; line-height: 1.6; }
+
+  .session-status {
+    background: linear-gradient(135deg, #1a3a2a, #0f3460);
+    border: 1px solid #2a7a5c;
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    display: none;
+  }
+  .session-status.active { display: block; }
+  .session-status .label { font-size: 12px; color: #7accaa; margin-bottom: 6px; }
+  .session-status .time { font-size: 20px; font-weight: 700; color: #7df7c0; }
+
+  /* ===== RECORD SCREEN ===== */
+  .time-display {
+    text-align: center;
+    padding: 8px 0 12px;
+  }
+  .time-display .start-label { font-size: 12px; color: var(--sub); }
+  .time-display .start-time { font-size: 28px; font-weight: 700; color: var(--accent2); }
+
+  .drink-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .drink-item {
+    background: var(--card2);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--border);
+  }
+  .drink-item .drink-icon { font-size: 28px; flex-shrink: 0; }
+  .drink-item .drink-info { flex: 1; }
+  .drink-item .drink-name { font-size: 14px; font-weight: 600; }
+  .drink-item .drink-sub { font-size: 12px; color: var(--sub); }
+  .drink-item .qty-ctrl {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .qty-btn {
+    width: 32px; height: 32px;
+    border-radius: 50%; border: none;
+    background: var(--card); color: var(--text);
+    font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .qty-btn:active { background: var(--accent); }
+  .qty-num { font-size: 18px; font-weight: 700; min-width: 24px; text-align: center; }
+
+  /* カスタムドリンク追加 */
+  .add-custom {
+    display: flex; gap: 8px; margin-top: 4px;
+  }
+  .add-custom input {
+    flex: 1; background: var(--card2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; color: var(--text);
+    font-size: 14px;
+  }
+  .add-custom input::placeholder { color: var(--sub); }
+
+  /* ===== CHECKLIST ===== */
+  .check-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .check-item:last-child { border-bottom: none; }
+  .check-box {
+    width: 26px; height: 26px;
+    border-radius: 8px; border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .check-item.checked .check-box {
+    background: var(--green); border-color: var(--green);
+  }
+  .check-item label { font-size: 15px; cursor: pointer; flex: 1; }
+  .check-item.checked label { text-decoration: line-through; color: var(--sub); }
+
+  /* ===== SUMMARY SCREEN ===== */
+  .advice-box {
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .advice-box.level-ok { background: #1a3a2a; border: 1px solid #2a7a5c; }
+  .advice-box.level-warn { background: #3a2a1a; border: 1px solid #9a6a2a; }
+  .advice-box.level-danger { background: #3a1a1a; border: 1px solid #9a2a2a; }
+  .advice-box .advice-icon { font-size: 48px; margin-bottom: 8px; }
+  .advice-box .advice-level { font-size: 13px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+  .advice-box.level-ok .advice-level { color: #7df7c0; }
+  .advice-box.level-warn .advice-level { color: var(--accent2); }
+  .advice-box.level-danger .advice-level { color: var(--accent); }
+  .advice-box .advice-text { font-size: 14px; line-height: 1.7; color: var(--text); }
+
+  .summary-row {
+    display: flex; justify-content: space-between;
+    padding: 9px 0; border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .summary-row:last-child { border-bottom: none; }
+  .summary-row .label { color: var(--sub); }
+  .summary-row .value { font-weight: 600; }
+
+  .alarm-suggestion {
+    background: var(--card2);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .alarm-suggestion .alarm-icon { font-size: 36px; }
+  .alarm-suggestion .alarm-text { flex: 1; }
+  .alarm-suggestion .alarm-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .alarm-suggestion .alarm-sub { font-size: 12px; color: var(--sub); line-height: 1.5; }
+
+  /* ===== HISTORY SCREEN ===== */
+  .history-item {
+    background: var(--card);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    display: flex; align-items: stretch;
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .hist-clickable {
+    flex: 1; padding: 14px 16px; cursor: pointer;
+  }
+  .hist-clickable:active { background: rgba(255,255,255,0.03); }
+  .history-item .hist-date { font-size: 13px; color: var(--sub); margin-bottom: 6px; }
+  .history-item .hist-summary { font-size: 15px; font-weight: 600; }
+  .history-item .hist-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+
+  .del-btn {
+    background: none; border: none; border-left: 1px solid var(--border);
+    padding: 0 16px; color: #555; font-size: 20px;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .del-btn:active { background: #3a1a1a; color: var(--accent); }
+
+  /* ===== TRASH ===== */
+  .trash-toggle {
+    width: 100%; background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    cursor: pointer; margin-top: 6px; margin-bottom: 10px;
+    color: var(--sub); font-size: 14px; font-weight: 600;
+  }
+  .trash-toggle .trash-count {
+    background: var(--card2); border-radius: 20px;
+    padding: 2px 10px; font-size: 12px;
+  }
+  .trash-section { display: none; }
+  .trash-section.open { display: block; }
+
+  .trash-item {
+    background: #1a1a1a; border: 1px solid #333;
+    border-radius: var(--radius); margin-bottom: 8px;
+    display: flex; align-items: stretch; overflow: hidden;
+    opacity: 0.85;
+  }
+  .trash-info { flex: 1; padding: 12px 14px; }
+  .trash-info .tr-date { font-size: 12px; color: #666; margin-bottom: 4px; }
+  .trash-info .tr-summary { font-size: 14px; color: #999; }
+  .trash-info .tr-expire {
+    font-size: 11px; margin-top: 6px; font-weight: 700;
+  }
+  .tr-expire.soon { color: var(--accent); }
+  .tr-expire.safe { color: var(--sub); }
+  .restore-btn {
+    background: none; border: none; border-left: 1px solid #333;
+    padding: 0 14px; color: #7df7c0; font-size: 13px; font-weight: 700;
+    cursor: pointer; flex-shrink: 0; white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .restore-btn:active { background: #1a3a2a; }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: #333; color: var(--text);
+    padding: 12px 20px; border-radius: 24px;
+    font-size: 14px; white-space: nowrap;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s;
+    z-index: 300;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+  }
+  .toast.show { opacity: 1; }
+  .tag {
+    background: var(--card2); border-radius: 20px;
+    padding: 3px 10px; font-size: 12px; color: var(--sub);
+  }
+  .tag.ok { background: #1a3a2a; color: #7df7c0; }
+  .tag.warn { background: #3a2a1a; color: var(--accent2); }
+  .tag.danger { background: #3a1a1a; color: var(--accent); }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--sub);
+  }
+  .empty-state .empty-icon { font-size: 56px; margin-bottom: 12px; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 24px;
+    width: 100%; max-width: 400px;
+    border: 1px solid var(--border);
+  }
+  .modal h3 { font-size: 18px; margin-bottom: 16px; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-btns .btn { margin-bottom: 0; }
+
+  /* ===== MEASURES (飲む前の対策) ===== */
+  .measure-grid {
+    display: flex; flex-wrap: wrap; gap: 10px;
+  }
+  .measure-chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 14px;
+    border-radius: 24px;
+    border: 2px solid var(--border);
+    background: var(--card2);
+    color: var(--sub);
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s;
+    user-select: none;
+  }
+  .measure-chip.selected {
+    border-color: #7df7c0;
+    background: #1a3a2a;
+    color: #7df7c0;
+  }
+  .measure-chip .chip-icon { font-size: 18px; }
+
+  /* ===== SETTINGS ===== */
+  .setting-block { margin-bottom: 20px; }
+  .setting-label {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .setting-label .s-title { font-size: 15px; font-weight: 700; }
+  .setting-label .s-value { font-size: 20px; font-weight: 700; }
+  .setting-label .s-value.warn { color: var(--accent2); }
+  .setting-label .s-value.danger { color: var(--accent); }
+  .setting-sub { font-size: 12px; color: var(--sub); margin-bottom: 10px; }
+
+  input[type=range] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px; border-radius: 3px;
+    outline: none; cursor: pointer;
+  }
+  input[type=range].warn-slider { background: linear-gradient(to right, #4caf50, var(--accent2)); }
+  input[type=range].danger-slider { background: linear-gradient(to right, #4caf50, var(--accent2), var(--accent)); }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--text); border: 3px solid var(--card);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    cursor: pointer;
+  }
+
+  .threshold-bar {
+    display: flex; height: 12px; border-radius: 6px; overflow: hidden;
+    margin: 16px 0 6px; gap: 2px;
+  }
+  .threshold-bar .seg-ok  { background: var(--green); }
+  .threshold-bar .seg-warn { background: var(--accent2); }
+  .threshold-bar .seg-danger { background: var(--accent); }
+
+  .threshold-labels {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--sub); margin-bottom: 16px;
+  }
+
+  .level-preview {
+    border-radius: 12px; padding: 12px 16px;
+    font-size: 13px; line-height: 1.6; text-align: center;
+    margin-top: 14px;
+  }
+  .level-preview.ok     { background: #1a3a2a; color: #7df7c0; border: 1px solid #2a7a5c; }
+  .level-preview.warn   { background: #3a2a1a; color: var(--accent2); border: 1px solid #9a6a2a; }
+  .level-preview.danger { background: #3a1a1a; color: var(--accent); border: 1px solid #9a2a2a; }
+
+  /* ===== MISC ===== */
+  .section-gap { margin-top: 20px; }
+  .note { font-size: 12px; color: var(--sub); line-height: 1.6; padding: 0 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <button class="back-btn" id="backBtn" onclick="goBack()">←</button>
+  <h1 id="headerTitle">飲みログ 🍺</h1>
+</header>
+
+<main>
+  <!-- ===== HOME ===== -->
+  <div class="screen active" id="screen-home">
+    <div class="home-hero">
+      <div class="emoji">🍻</div>
+      <h2>飲みログ</h2>
+      <p>今夜の飲酒を記録して<br>明日の二日酔いを防ごう</p>
+    </div>
+
+    <div class="session-status" id="activeSessionBanner">
+      <div class="label">🟢 記録中</div>
+      <div class="time" id="activeSessionTime"></div>
+    </div>
+
+    <button class="btn btn-primary" id="startBtn" onclick="startSession()" style="margin-bottom:10px">
+      🍺 今夜の記録を始める
+    </button>
+    <button class="btn btn-secondary" id="continueBtn" onclick="goToRecord()" style="display:none;margin-bottom:10px">
+      📝 記録を続ける
+    </button>
+    <button class="btn btn-secondary" onclick="showScreen('history')">
+      📋 過去の記録を見る
+    </button>
+  </div>
+
+  <!-- ===== RECORD ===== -->
+  <div class="screen" id="screen-record">
+    <div class="time-display">
+      <div class="start-label">🕐 飲み始め</div>
+      <div class="start-time" id="displayStartTime">--:--</div>
+    </div>
+
+    <!-- 飲む前の対策 -->
+    <div class="card">
+      <div class="card-title">💊 飲む前の対策</div>
+      <div class="measure-grid" id="measureGrid"></div>
+      <div style="margin-top:12px">
+        <div class="add-custom">
+          <input type="text" id="customMeasureName" placeholder="例：ウコンの力、牛乳を飲んだ…" maxlength="20">
+          <button class="btn btn-primary btn-sm" onclick="addCustomMeasure()">追加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ドリンク選択 -->
+    <div class="card">
+      <div class="card-title">🥂 何を飲んだ？</div>
+      <div class="drink-list" id="drinkList"></div>
+
+      <div style="margin-top:14px">
+        <div class="card-title" style="margin-bottom:8px">➕ その他を追加</div>
+        <div class="add-custom">
+          <input type="text" id="customDrinkName" placeholder="例：梅酒、カシスオレンジ…" maxlength="20">
+          <button class="btn btn-primary btn-sm" onclick="addCustomDrink()">追加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 忘れ物チェック -->
+    <div class="card">
+      <div class="card-title">🔍 忘れ物チェック</div>
+      <div id="checkList"></div>
+    </div>
+
+    <!-- メモ -->
+    <div class="card">
+      <div class="card-title">📝 メモ（任意）</div>
+      <textarea id="sessionMemo" rows="3" placeholder="今夜のひとこと…"
+        style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;resize:none;line-height:1.6"></textarea>
+    </div>
+
+    <button class="btn btn-green" onclick="finishSession()" style="margin-bottom:24px">
+      ✅ 記録を完了する
+    </button>
+  </div>
+
+  <!-- ===== SUMMARY ===== -->
+  <div class="screen" id="screen-summary">
+    <div id="adviceBox" class="advice-box"></div>
+
+    <div class="card">
+      <div class="card-title">📊 今夜のまとめ</div>
+      <div id="summaryContent"></div>
+    </div>
+
+    <div id="alarmSuggestion" class="alarm-suggestion"></div>
+
+    <div class="card" id="summaryMeasureCard">
+      <div class="card-title">💊 飲む前の対策</div>
+      <div id="summaryMeasureList"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔍 忘れ物チェック結果</div>
+      <div id="summaryCheckList"></div>
+    </div>
+
+    <button class="btn btn-secondary" onclick="showScreen('home')" style="margin-bottom:24px">
+      🏠 ホームに戻る
+    </button>
+  </div>
+
+  <!-- ===== HISTORY ===== -->
+  <div class="screen" id="screen-history">
+    <div id="historyList"></div>
+  </div>
+
+  <!-- ===== SETTINGS ===== -->
+  <div class="screen" id="screen-settings">
+
+    <div class="card">
+      <div class="card-title">⚠️ アラートのしきい値設定</div>
+      <p class="note" style="margin-bottom:16px">純アルコール量（g）をもとに3段階で判定します。自分の体に合わせて調整してください。</p>
+
+      <!-- 警告ライン -->
+      <div class="setting-block">
+        <div class="setting-label">
+          <span class="s-title">😅 警告ライン</span>
+          <span class="s-value warn" id="warnVal">--g</span>
+        </div>
+        <div class="setting-sub" id="warnBeer"></div>
+        <input type="range" class="warn-slider" id="warnSlider"
+          min="5" max="80" step="1"
+          oninput="onWarnChange(this.value)">
+      </div>
+
+      <!-- 危険ライン -->
+      <div class="setting-block">
+        <div class="setting-label">
+          <span class="s-title">🤢 危険ライン</span>
+          <span class="s-value danger" id="dangerVal">--g</span>
+        </div>
+        <div class="setting-sub" id="dangerBeer"></div>
+        <input type="range" class="danger-slider" id="dangerSlider"
+          min="10" max="150" step="1"
+          oninput="onDangerChange(this.value)">
+      </div>
+
+      <!-- ゾーンバー -->
+      <div class="threshold-bar">
+        <div class="seg-ok"     id="segOk"></div>
+        <div class="seg-warn"   id="segWarn"></div>
+        <div class="seg-danger" id="segDanger"></div>
+      </div>
+      <div class="threshold-labels">
+        <span>0g</span>
+        <span id="barWarnLabel"></span>
+        <span id="barDangerLabel"></span>
+        <span>150g</span>
+      </div>
+
+      <button class="btn btn-secondary" style="margin-bottom:10px" onclick="resetThresholds()">
+        🔄 デフォルトに戻す（警告20g・危険40g）
+      </button>
+    </div>
+
+    <!-- プレビュー -->
+    <div class="card">
+      <div class="card-title">📊 今の設定でのシミュレーション</div>
+      <p class="note" style="margin-bottom:12px">現在の設定でどの飲酒量がどのレベルになるか確認できます。</p>
+      <div id="simRows"></div>
+    </div>
+
+  </div>
+</main>
+
+<nav>
+  <button class="active" id="nav-home" onclick="showScreen('home')">
+    <span class="icon">🏠</span>ホーム
+  </button>
+  <button id="nav-record" onclick="showScreen('record')">
+    <span class="icon">📝</span>記録
+  </button>
+  <button id="nav-history" onclick="showScreen('history')">
+    <span class="icon">📋</span>履歴
+  </button>
+  <button id="nav-settings" onclick="showScreen('settings')">
+    <span class="icon">⚙️</span>設定
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<!-- モーダル：記録完了確認 -->
+<div class="modal-overlay" id="finishModal">
+  <div class="modal">
+    <h3>記録を完了しますか？</h3>
+    <p style="color:var(--sub);font-size:14px;line-height:1.6">飲み終わりを記録して、二日酔い対策アドバイスを確認します。</p>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal()">戻る</button>
+      <button class="btn btn-green" onclick="confirmFinish()">完了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== データ定義 =====
+const DRINKS = [
+  { id: 'beer_can', icon: '🍺', name: 'ビール（缶350ml）', abv: 5, ml: 350 },
+  { id: 'beer_mug', icon: '🍻', name: 'ビール（中ジョッキ）', abv: 5, ml: 500 },
+  { id: 'chuhai', icon: '🥤', name: 'チューハイ（350ml）', abv: 5, ml: 350 },
+  { id: 'sake', icon: '🍶', name: '日本酒（1合）', abv: 15, ml: 180 },
+  { id: 'wine', icon: '🍷', name: 'ワイン（グラス）', abv: 12, ml: 150 },
+  { id: 'whisky', icon: '🥃', name: 'ウイスキー（シングル）', abv: 40, ml: 30 },
+  { id: 'shochu', icon: '🫙', name: '焼酎（1杯）', abv: 25, ml: 90 },
+  { id: 'cocktail', icon: '🍹', name: 'カクテル（グラス）', abv: 8, ml: 200 },
+  { id: 'highball', icon: '🥃', name: 'ハイボール', abv: 8, ml: 300 },
+  { id: 'imo_soda', icon: '🫧', name: '芋ソーダ', abv: 8, ml: 300 },
+  { id: 'imo_mizu', icon: '💧', name: '芋水割り', abv: 8, ml: 300 },
+  { id: 'mugi_soda', icon: '🫧', name: '麦ソーダ', abv: 8, ml: 300 },
+  { id: 'mugi_mizu', icon: '💧', name: '麦水割り', abv: 8, ml: 300 },
+];
+
+const CHECK_ITEMS = [
+  { id: 'wallet', label: '財布', icon: '👛' },
+  { id: 'phone', label: 'スマホ', icon: '📱' },
+  { id: 'keys', label: '鍵', icon: '🗝️' },
+  { id: 'bag', label: 'カバン', icon: '👜' },
+  { id: 'card', label: 'カード類', icon: '💳' },
+  { id: 'earphones', label: 'イヤホン', icon: '🎧' },
+  { id: 'umbrella', label: '傘', icon: '☂️' },
+  { id: 'jacket', label: '上着', icon: '🧥' },
+];
+
+const MEASURES = [
+  { id: 'ukon', icon: '💛', label: 'ウコン' },
+  { id: 'heparize', icon: '💊', label: 'ヘパリーゼ' },
+  { id: 'miraclen', icon: '💉', label: 'ミラグレーン' },
+  { id: 'meal', icon: '🍚', label: '食事をとった' },
+  { id: 'water', icon: '💧', label: '水を飲んだ' },
+];
+
+// ===== 状態管理 =====
+let currentSession = null;
+let quantities = {};     // drinkId -> count
+let checks = {};         // itemId -> boolean
+let customDrinks = [];   // {id, icon, name, abv, ml}
+let measures = {};       // measureId -> boolean
+let customMeasures = []; // {id, icon, label}
+
+// しきい値（純アルコールg）
+let warnThreshold  = parseInt(localStorage.getItem('warnThreshold')  || '20');
+let dangerThreshold = parseInt(localStorage.getItem('dangerThreshold') || '40');
+
+// ===== 初期化 =====
+function init() {
+  const saved = localStorage.getItem('currentSession');
+  if (saved) {
+    currentSession = JSON.parse(saved);
+    quantities = currentSession.quantities || {};
+    checks = currentSession.checks || {};
+    customDrinks = currentSession.customDrinks || [];
+    measures = currentSession.measures || {};
+    customMeasures = currentSession.customMeasures || [];
+    updateHomeBanner();
+    document.getElementById('continueBtn').style.display = 'block';
+    document.getElementById('startBtn').textContent = '🔄 新しい記録を始める';
+  }
+  renderDrinkList();
+  renderCheckList();
+  renderMeasureGrid();
+}
+
+// ===== セッション開始 =====
+function startSession() {
+  if (currentSession) {
+    if (!confirm('現在の記録を破棄して新しく始めますか？')) return;
+  }
+  currentSession = {
+    id: Date.now(),
+    startTime: new Date().toISOString(),
+    quantities: {},
+    checks: {},
+    customDrinks: [],
+    measures: {},
+    customMeasures: [],
+    memo: '',
+  };
+  quantities = {};
+  checks = {};
+  customDrinks = [];
+  measures = {};
+  customMeasures = [];
+  saveCurrentSession();
+  updateHomeBanner();
+  document.getElementById('continueBtn').style.display = 'block';
+  document.getElementById('startBtn').textContent = '🔄 新しい記録を始める';
+  renderDrinkList();
+  renderCheckList();
+  renderMeasureGrid();
+  showScreen('record');
+}
+
+function goToRecord() {
+  renderDrinkList();
+  renderCheckList();
+  renderMeasureGrid();
+  showScreen('record');
+}
+
+// ===== ドリンクリスト描画 =====
+function getAllDrinks() {
+  return [...DRINKS, ...customDrinks];
+}
+
+function renderDrinkList() {
+  const el = document.getElementById('drinkList');
+  if (!el) return;
+  el.innerHTML = getAllDrinks().map(d => `
+    <div class="drink-item">
+      <span class="drink-icon">${d.icon}</span>
+      <div class="drink-info">
+        <div class="drink-name">${d.name}</div>
+        <div class="drink-sub">アルコール度数 ${d.abv}%</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty('${d.id}',-1)">−</button>
+        <span class="qty-num" id="qty-${d.id}">${quantities[d.id] || 0}</span>
+        <button class="qty-btn" onclick="changeQty('${d.id}',1)">＋</button>
+      </div>
+    </div>
+  `).join('');
+
+  if (currentSession) {
+    const st = new Date(currentSession.startTime);
+    document.getElementById('displayStartTime').textContent =
+      st.getHours().toString().padStart(2,'0') + ':' + st.getMinutes().toString().padStart(2,'0');
+  }
+}
+
+function changeQty(id, delta) {
+  quantities[id] = Math.max(0, (quantities[id] || 0) + delta);
+  const el = document.getElementById('qty-' + id);
+  if (el) el.textContent = quantities[id];
+  if (currentSession) {
+    currentSession.quantities = quantities;
+    saveCurrentSession();
+  }
+}
+
+function addCustomDrink() {
+  const name = document.getElementById('customDrinkName').value.trim();
+  if (!name) return;
+  const id = 'custom_' + Date.now();
+  const drink = { id, icon: '🫗', name, abv: 5, ml: 200 };
+  customDrinks.push(drink);
+  quantities[id] = 1;
+  document.getElementById('customDrinkName').value = '';
+  if (currentSession) {
+    currentSession.customDrinks = customDrinks;
+    currentSession.quantities = quantities;
+    saveCurrentSession();
+  }
+  renderDrinkList();
+}
+
+// ===== 対策グリッド描画 =====
+function getAllMeasures() {
+  return [...MEASURES, ...customMeasures];
+}
+
+function renderMeasureGrid() {
+  const el = document.getElementById('measureGrid');
+  if (!el) return;
+  el.innerHTML = getAllMeasures().map(m => `
+    <div class="measure-chip${measures[m.id] ? ' selected' : ''}" onclick="toggleMeasure('${m.id}')">
+      <span class="chip-icon">${m.icon}</span>${m.label}
+    </div>
+  `).join('');
+}
+
+function toggleMeasure(id) {
+  measures[id] = !measures[id];
+  if (currentSession) {
+    currentSession.measures = measures;
+    saveCurrentSession();
+  }
+  renderMeasureGrid();
+}
+
+function addCustomMeasure() {
+  const name = document.getElementById('customMeasureName').value.trim();
+  if (!name) return;
+  const id = 'cmeasure_' + Date.now();
+  customMeasures.push({ id, icon: '✨', label: name });
+  measures[id] = true;
+  document.getElementById('customMeasureName').value = '';
+  if (currentSession) {
+    currentSession.customMeasures = customMeasures;
+    currentSession.measures = measures;
+    saveCurrentSession();
+  }
+  renderMeasureGrid();
+}
+
+// ===== チェックリスト描画 =====
+function renderCheckList() {
+  const el = document.getElementById('checkList');
+  if (!el) return;
+  el.innerHTML = CHECK_ITEMS.map(item => `
+    <div class="check-item${checks[item.id] ? ' checked' : ''}" onclick="toggleCheck('${item.id}')">
+      <div class="check-box">${checks[item.id] ? '✓' : ''}</div>
+      <label>${item.icon} ${item.label}</label>
+    </div>
+  `).join('');
+}
+
+function toggleCheck(id) {
+  checks[id] = !checks[id];
+  if (currentSession) {
+    currentSession.checks = checks;
+    saveCurrentSession();
+  }
+  renderCheckList();
+}
+
+// ===== 記録完了 =====
+function finishSession() {
+  document.getElementById('finishModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('finishModal').classList.remove('show');
+}
+
+function confirmFinish() {
+  closeModal();
+  if (!currentSession) return;
+
+  currentSession.quantities = quantities;
+  currentSession.checks = checks;
+  currentSession.customDrinks = customDrinks;
+  currentSession.measures = measures;
+  currentSession.customMeasures = customMeasures;
+  currentSession.memo = document.getElementById('sessionMemo').value;
+  currentSession.endTime = new Date().toISOString();
+
+  // 履歴に保存
+  const history = JSON.parse(localStorage.getItem('drinkHistory') || '[]');
+  history.unshift(currentSession);
+  localStorage.setItem('drinkHistory', JSON.stringify(history));
+
+  // 現在セッションをクリア
+  localStorage.removeItem('currentSession');
+  currentSession = null;
+  quantities = {};
+  checks = {};
+  customDrinks = [];
+  measures = {};
+  customMeasures = [];
+  document.getElementById('continueBtn').style.display = 'none';
+  document.getElementById('startBtn').textContent = '🍺 今夜の記録を始める';
+  document.getElementById('activeSessionBanner').classList.remove('active');
+
+  // サマリー表示
+  renderSummary(history[0]);
+  showScreen('summary');
+}
+
+// ===== アルコール計算 =====
+function calcTotalAlcohol(session) {
+  let total = 0;
+  const allDrinks = [...DRINKS, ...(session.customDrinks || [])];
+  const qty = session.quantities || {};
+  allDrinks.forEach(d => {
+    const count = qty[d.id] || 0;
+    // 純アルコール量(g) = ml × (abv/100) × 0.8
+    total += d.ml * (d.abv / 100) * 0.8 * count;
+  });
+  return Math.round(total);
+}
+
+function getLevel(totalG) {
+  if (totalG <= warnThreshold) return 'ok';
+  if (totalG <= dangerThreshold) return 'warn';
+  return 'danger';
+}
+
+const ADVICE = {
+  ok: {
+    icon: '😊', levelText: '軽め',
+    text: '今夜はほどよく楽しめましたね！\n寝る前にコップ1杯の水を飲んでから休むと、明日の朝スッキリ起きられますよ。'
+  },
+  warn: {
+    icon: '😅', levelText: 'やや多め',
+    text: 'ちょっと飲んだかも。\n水かスポーツドリンクを2〜3杯飲んでから寝ましょう。胃に何か軽いもの（おにぎりやトースト）を入れると尚良し。朝起きたら水分補給を忘れずに。'
+  },
+  danger: {
+    icon: '🤢', levelText: '飲みすぎ注意',
+    text: '飲みすぎました…！\n経口補水液やスポーツドリンクをゆっくり飲んで。横向きに寝るのがおすすめ（万が一のため）。鎮痛剤は胃への負担に注意。翌朝はみそ汁や卵など優しい食事を。'
+  }
+};
+
+// ===== サマリー描画 =====
+function renderSummary(session) {
+  const totalG = calcTotalAlcohol(session);
+  const level = getLevel(totalG);
+  const adv = ADVICE[level];
+
+  // アドバイスボックス
+  const advBox = document.getElementById('adviceBox');
+  advBox.className = 'advice-box level-' + level;
+  advBox.innerHTML = `
+    <div class="advice-icon">${adv.icon}</div>
+    <div class="advice-level">今夜は${adv.levelText}（推定純アルコール ${totalG}g）</div>
+    <div class="advice-text">${adv.text.replace(/\n/g,'<br>')}</div>
+  `;
+
+  // まとめ
+  const allDrinks = [...DRINKS, ...(session.customDrinks || [])];
+  const qty = session.quantities || {};
+  const drinkLines = allDrinks
+    .filter(d => (qty[d.id] || 0) > 0)
+    .map(d => `<div class="summary-row">
+      <span class="label">${d.icon} ${d.name}</span>
+      <span class="value">${qty[d.id]}杯</span>
+    </div>`).join('');
+
+  const st = new Date(session.startTime);
+  const et = session.endTime ? new Date(session.endTime) : null;
+  const dur = et ? Math.round((et - st) / 60000) : null;
+
+  document.getElementById('summaryContent').innerHTML = `
+    <div class="summary-row">
+      <span class="label">🕐 飲み始め</span>
+      <span class="value">${fmt(st)}</span>
+    </div>
+    ${et ? `<div class="summary-row"><span class="label">🕑 飲み終わり</span><span class="value">${fmt(et)}</span></div>` : ''}
+    ${dur ? `<div class="summary-row"><span class="label">⏱ 飲酒時間</span><span class="value">約${dur}分</span></div>` : ''}
+    ${drinkLines || '<div class="summary-row"><span class="label" style="color:var(--sub)">記録なし</span></div>'}
+    ${session.memo ? `<div class="summary-row"><span class="label">📝 メモ</span><span class="value" style="max-width:60%;text-align:right;font-size:13px">${session.memo}</span></div>` : ''}
+  `;
+
+  // アラーム提案
+  const alarmTime = suggestAlarm(st, level);
+  document.getElementById('alarmSuggestion').innerHTML = `
+    <div class="alarm-icon">⏰</div>
+    <div class="alarm-text">
+      <div class="alarm-title">翌朝アラーム提案：${alarmTime}</div>
+      <div class="alarm-sub">しっかり睡眠をとって回復しましょう。<br>起きたらまず水分補給から。</div>
+    </div>
+  `;
+
+  // 飲む前の対策
+  const allMeasures = [...MEASURES, ...(session.customMeasures || [])];
+  const takenMeasures = allMeasures.filter(m => (session.measures || {})[m.id]);
+  const measureCard = document.getElementById('summaryMeasureCard');
+  if (takenMeasures.length > 0) {
+    measureCard.style.display = 'block';
+    document.getElementById('summaryMeasureList').innerHTML =
+      '<div style="display:flex;flex-wrap:wrap;gap:8px">' +
+      takenMeasures.map(m =>
+        `<span style="background:#1a3a2a;border:1px solid #2a7a5c;color:#7df7c0;border-radius:20px;padding:5px 12px;font-size:13px">${m.icon} ${m.label}</span>`
+      ).join('') +
+      '</div>' +
+      '<div style="font-size:12px;color:var(--sub);margin-top:10px;line-height:1.6">対策をとっていたのは偉い！次回も続けましょう。</div>';
+  } else {
+    measureCard.style.display = 'block';
+    document.getElementById('summaryMeasureList').innerHTML =
+      '<div style="color:var(--sub);font-size:14px">今回は対策なし。次回は飲む前に何か試してみよう！</div>';
+  }
+
+  // 忘れ物チェック結果
+  const ch = session.checks || {};
+  const total = CHECK_ITEMS.length;
+  const checked = CHECK_ITEMS.filter(i => ch[i.id]).length;
+  const missing = CHECK_ITEMS.filter(i => !ch[i.id]);
+  document.getElementById('summaryCheckList').innerHTML = `
+    <div style="font-size:14px;margin-bottom:12px;color:var(--sub)">${checked} / ${total} 確認済み</div>
+    ${missing.length > 0
+      ? '<div style="color:var(--accent);font-size:13px;margin-bottom:8px">⚠️ 未確認・要チェック：</div>' +
+        missing.map(i => `<div style="font-size:14px;padding:6px 0;border-bottom:1px solid var(--border)">${i.icon} ${i.label}</div>`).join('')
+      : '<div style="color:#7df7c0;font-size:14px">✅ 全て確認完了！</div>'
+    }
+  `;
+}
+
+function fmt(d) {
+  return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+}
+
+function suggestAlarm(startTime, level) {
+  const base = new Date(startTime);
+  const hoursNeeded = level === 'ok' ? 7 : level === 'warn' ? 8 : 9;
+  base.setHours(base.getHours() + hoursNeeded);
+  // 8時より前なら8時に
+  if (base.getHours() < 8 || (base.getHours() === 8 && base.getMinutes() === 0)) {
+    base.setHours(8, 0, 0, 0);
+  }
+  return fmt(base);
+}
+
+// ===== 履歴 =====
+function renderHistory() {
+  const history = JSON.parse(localStorage.getItem('drinkHistory') || '[]');
+  const active  = history.filter(s => !s.deletedAt);
+  const trashed = history.filter(s => !!s.deletedAt);
+  const el = document.getElementById('historyList');
+
+  let html = '';
+
+  if (active.length === 0) {
+    html += `
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <p>まだ記録がありません</p>
+        <p style="font-size:12px;margin-top:6px">今夜の飲酒を記録してみましょう</p>
+      </div>`;
+  } else {
+    html += active.map(s => historyItemHTML(s)).join('');
+  }
+
+  // ゴミ箱トグル
+  if (trashed.length > 0) {
+    html += `
+      <button class="trash-toggle" onclick="toggleTrash()">
+        <span>🗑️ ゴミ箱（30日以内に復元可能）</span>
+        <span class="trash-count" id="trashCount">${trashed.length}件</span>
+      </button>
+      <div class="trash-section" id="trashSection">
+        ${trashed.map(s => trashItemHTML(s)).join('')}
+      </div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function historyItemHTML(s) {
+  const date = new Date(s.startTime);
+  const totalG = calcTotalAlcohol(s);
+  const level = getLevel(totalG);
+  const allDrinks = [...DRINKS, ...(s.customDrinks || [])];
+  const qty = s.quantities || {};
+  const drinkSummary = allDrinks
+    .filter(d => (qty[d.id] || 0) > 0)
+    .map(d => `${d.icon}×${qty[d.id]}`).join(' ');
+  const tagClass = { ok: 'ok', warn: 'warn', danger: 'danger' }[level];
+  const tagLabel = { ok: '軽め', warn: 'やや多め', danger: '飲みすぎ' }[level];
+  const dateStr = date.toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+  const allM = [...MEASURES, ...(s.customMeasures || [])];
+  const takenCount = allM.filter(m => (s.measures || {})[m.id]).length;
+
+  return `
+    <div class="history-item">
+      <div class="hist-clickable" onclick="showHistoryDetail(${s.id})">
+        <div class="hist-date">${dateStr} ${fmt(date)}〜</div>
+        <div class="hist-summary">${drinkSummary || '記録なし'}</div>
+        <div class="hist-tags">
+          <span class="tag ${tagClass}">${tagLabel}（${totalG}g）</span>
+          ${takenCount > 0 ? `<span class="tag ok">💊 対策${takenCount}件</span>` : ''}
+          ${s.memo ? '<span class="tag">📝メモあり</span>' : ''}
+        </div>
+      </div>
+      <button class="del-btn" onclick="deleteRecord(${s.id})" title="削除">🗑️</button>
+    </div>`;
+}
+
+function trashItemHTML(s) {
+  const date = new Date(s.startTime);
+  const deletedAt = new Date(s.deletedAt);
+  const daysLeft = 30 - Math.floor((Date.now() - deletedAt) / 86400000);
+  const allDrinks = [...DRINKS, ...(s.customDrinks || [])];
+  const qty = s.quantities || {};
+  const drinkSummary = allDrinks
+    .filter(d => (qty[d.id] || 0) > 0)
+    .map(d => `${d.icon}×${qty[d.id]}`).join(' ');
+  const dateStr = date.toLocaleDateString('ja-JP', { month:'long', day:'numeric', weekday:'short' });
+  const expireClass = daysLeft <= 7 ? 'soon' : 'safe';
+
+  return `
+    <div class="trash-item">
+      <div class="trash-info">
+        <div class="tr-date">${dateStr} ${fmt(date)}〜</div>
+        <div class="tr-summary">${drinkSummary || '記録なし'}</div>
+        <div class="tr-expire ${expireClass}">あと ${daysLeft} 日で完全削除</div>
+      </div>
+      <button class="restore-btn" onclick="restoreRecord(${s.id})">↩️ 復元</button>
+    </div>`;
+}
+
+function toggleTrash() {
+  const el = document.getElementById('trashSection');
+  if (el) el.classList.toggle('open');
+}
+
+function deleteRecord(sessionId) {
+  const history = JSON.parse(localStorage.getItem('drinkHistory') || '[]');
+  const idx = history.findIndex(s => s.id === sessionId);
+  if (idx === -1) return;
+  history[idx].deletedAt = new Date().toISOString();
+  localStorage.setItem('drinkHistory', JSON.stringify(history));
+  renderHistory();
+  showToast('削除しました。ゴミ箱から30日以内に復元できます。');
+}
+
+function restoreRecord(sessionId) {
+  const history = JSON.parse(localStorage.getItem('drinkHistory') || '[]');
+  const idx = history.findIndex(s => s.id === sessionId);
+  if (idx === -1) return;
+  delete history[idx].deletedAt;
+  localStorage.setItem('drinkHistory', JSON.stringify(history));
+  renderHistory();
+  showToast('復元しました！');
+}
+
+function purgeOldTrash() {
+  const history = JSON.parse(localStorage.getItem('drinkHistory') || '[]');
+  const limit = 30 * 86400000;
+  const filtered = history.filter(s => {
+    if (!s.deletedAt) return true;
+    return (Date.now() - new Date(s.deletedAt)) < limit;
+  });
+  if (filtered.length !== history.length) {
+    localStorage.setItem('drinkHistory', JSON.stringify(filtered));
+  }
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+function showHistoryDetail(sessionId) {
+  const history = JSON.parse(localStorage.getItem('drinkHistory') || '[]');
+  const session = history.find(s => s.id === sessionId);
+  if (!session) return;
+  renderSummary(session);
+  showScreen('summary');
+}
+
+// ===== ホームバナー =====
+function updateHomeBanner() {
+  if (!currentSession) {
+    document.getElementById('activeSessionBanner').classList.remove('active');
+    return;
+  }
+  const st = new Date(currentSession.startTime);
+  document.getElementById('activeSessionTime').textContent =
+    '飲み始め ' + fmt(st) + ' 〜 記録中…';
+  document.getElementById('activeSessionBanner').classList.add('active');
+}
+
+// ===== セッション保存 =====
+function saveCurrentSession() {
+  if (currentSession) {
+    localStorage.setItem('currentSession', JSON.stringify(currentSession));
+  }
+}
+
+// ===== 設定画面 =====
+const BEER_G = 14; // ビール350ml 5%の純アルコール量(g)
+
+function toBeer(g) {
+  return (g / BEER_G).toFixed(1);
+}
+
+function renderSettings() {
+  document.getElementById('warnSlider').value   = warnThreshold;
+  document.getElementById('dangerSlider').value = dangerThreshold;
+  updateSettingsUI();
+}
+
+function updateSettingsUI() {
+  const w = warnThreshold;
+  const d = dangerThreshold;
+  const max = 150;
+
+  document.getElementById('warnVal').textContent    = w + 'g';
+  document.getElementById('dangerVal').textContent  = d + 'g';
+  document.getElementById('warnBeer').textContent   = `ビール缶（350ml）換算：約 ${toBeer(w)} 杯相当`;
+  document.getElementById('dangerBeer').textContent = `ビール缶（350ml）換算：約 ${toBeer(d)} 杯相当`;
+  document.getElementById('barWarnLabel').textContent   = w + 'g';
+  document.getElementById('barDangerLabel').textContent = d + 'g';
+
+  // ゾーンバーの幅を比率で設定
+  const okW    = (w / max * 100).toFixed(1);
+  const warnW  = ((d - w) / max * 100).toFixed(1);
+  const dangerW = ((max - d) / max * 100).toFixed(1);
+  document.getElementById('segOk').style.flex    = okW;
+  document.getElementById('segWarn').style.flex  = Math.max(warnW, 0);
+  document.getElementById('segDanger').style.flex = Math.max(dangerW, 1);
+
+  // シミュレーション行
+  const SIM = [
+    { label: 'ビール1缶（350ml）', g: 14 },
+    { label: 'ビール2缶', g: 28 },
+    { label: 'ビール3缶', g: 42 },
+    { label: '日本酒1合', g: 22 },
+    { label: '日本酒2合', g: 43 },
+    { label: 'ウイスキーダブル×2', g: 38 },
+    { label: 'ハイボール3杯', g: 58 },
+  ];
+  const ICONS = { ok: '😊', warn: '😅', danger: '🤢' };
+  const LABELS = { ok: '軽め', warn: '警告', danger: '危険' };
+  const COLORS = { ok: '#7df7c0', warn: '#f5a623', danger: '#e94560' };
+  document.getElementById('simRows').innerHTML = SIM.map(s => {
+    const lv = getLevel(s.g);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:14px">
+      <span style="color:var(--sub)">${s.label}（${s.g}g）</span>
+      <span style="font-weight:700;color:${COLORS[lv]}">${ICONS[lv]} ${LABELS[lv]}</span>
+    </div>`;
+  }).join('');
+}
+
+function onWarnChange(val) {
+  warnThreshold = parseInt(val);
+  if (warnThreshold >= dangerThreshold) {
+    dangerThreshold = warnThreshold + 5;
+    document.getElementById('dangerSlider').value = dangerThreshold;
+  }
+  saveThresholds();
+  updateSettingsUI();
+}
+
+function onDangerChange(val) {
+  dangerThreshold = parseInt(val);
+  if (dangerThreshold <= warnThreshold) {
+    warnThreshold = dangerThreshold - 5;
+    document.getElementById('warnSlider').value = warnThreshold;
+  }
+  saveThresholds();
+  updateSettingsUI();
+}
+
+function resetThresholds() {
+  warnThreshold  = 20;
+  dangerThreshold = 40;
+  saveThresholds();
+  renderSettings();
+}
+
+function saveThresholds() {
+  localStorage.setItem('warnThreshold',   warnThreshold);
+  localStorage.setItem('dangerThreshold', dangerThreshold);
+}
+
+// ===== 画面遷移 =====
+const SCREEN_TITLES = {
+  home: '飲みログ 🍺',
+  record: '今夜の記録 ✍️',
+  summary: '記録完了 ✅',
+  history: '過去の記録 📋',
+  settings: 'アラート設定 ⚙️',
+};
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  const navBtn = document.getElementById('nav-' + name);
+  if (navBtn) navBtn.classList.add('active');
+
+  document.getElementById('headerTitle').textContent = SCREEN_TITLES[name] || '飲みログ';
+  document.getElementById('backBtn').classList.toggle('show', name === 'summary');
+
+  if (name === 'history') renderHistory();
+  if (name === 'record') { renderDrinkList(); renderMeasureGrid(); }
+  if (name === 'settings') renderSettings();
+  window.scrollTo(0, 0);
+}
+
+function goBack() {
+  showScreen('history');
+}
+
+// ===== 起動 =====
+purgeOldTrash();
+init();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
+</script>
+</body>
+</html>
